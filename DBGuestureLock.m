@@ -64,9 +64,11 @@
 
 @implementation DBGuestureLock
 
-+(BOOL)passwordSetupStatus {
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    NSString *password = [defaults valueForKey:DBGuestureLockPaswd];
+#define GUESTURE_LOCK @"GuestureLock"
+
++(BOOL)passwordSetupStatus:(NSString*)user {
+    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:GUESTURE_LOCK];
+    NSString *password = [defaults valueForKey:user];
     if (password == nil || [password length] <= 0) {
         return NO;
     }
@@ -74,20 +76,20 @@
     return YES;
 }
 
-+(void)clearGuestureLockPassword {
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    [defaults setValue: nil forKey:DBGuestureLockPaswd];
++(void)clearGuestureLockPassword:(NSString*)user {
+    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:GUESTURE_LOCK];
+    [defaults setValue: nil forKey:user];
 }
 
-+(NSString *)getGuestureLockPassword {
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    NSString *password = [defaults valueForKey:DBGuestureLockPaswd];
++(NSString *)getGuestureLockPassword:(NSString*)user {
+    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:GUESTURE_LOCK];
+    NSString *password = [defaults valueForKey:user];
     
     return password;
 }
 
 -(BOOL)isPasswordSetup {
-    return [[self class] passwordSetupStatus];
+    return [[self class] passwordSetupStatus:self.user];
 }
 
 //@Override
@@ -117,16 +119,13 @@
     [path stroke];
 }
 
-+(instancetype)lockOnView:(UIView*)view delegate:(id<DBGuestureLockDelegate>)delegate {
-    return [DBGuestureLock lockOnView:view offsetFromBottom:60.f delegate:delegate];
-}
-
-+(instancetype)lockOnView:(UIView*)view offsetFromBottom:(CGFloat)offset delegate:(id<DBGuestureLockDelegate>)delegate {
++(instancetype)lockOnView:(UIView*)view user:(NSString*)user delegate:(id<DBGuestureLockDelegate>)delegate {
     CGFloat width = view.frame.size.height > view.frame.size.width ? view.frame.size.width : view.frame.size.height;
     CGFloat height = view.frame.size.height < view.frame.size.width ? view.frame.size.width : view.frame.size.height;
-    CGRect frame = CGRectMake(0, height - width - offset, width, width);
+    CGRect frame = CGRectMake(0, height - width - 60, width, width);
     DBGuestureLock *lock = [[DBGuestureLock alloc] initWithFrame:frame];
     
+    lock.user = user;
     lock.delegate = delegate;
     lock.onPasswordSet = nil;
     lock.onGetCorrectPswd = nil;
@@ -135,16 +134,13 @@
     return lock;
 }
 
-+(instancetype)lockOnView:(UIView*)view onPasswordSet:(void (^)(DBGuestureLock *lock, NSString *password))onPasswordSet onGetCorrectPswd:(void (^)(DBGuestureLock *lock, NSString *password))onGetCorrectPswd onGetIncorrectPswd:(void (^)(DBGuestureLock *lock, NSString *password))onGetIncorrectPswd {
-    return [DBGuestureLock lockOnView:view offsetFromBottom:60.f onPasswordSet:onPasswordSet onGetCorrectPswd:onGetCorrectPswd onGetIncorrectPswd:onGetIncorrectPswd];
-}
-
-+(instancetype)lockOnView:(UIView*)view offsetFromBottom:(CGFloat)offset onPasswordSet:(void (^)(DBGuestureLock *lock, NSString *password))onPasswordSet onGetCorrectPswd:(void (^)(DBGuestureLock *lock, NSString *password))onGetCorrectPswd onGetIncorrectPswd:(void (^)(DBGuestureLock *lock, NSString *password))onGetIncorrectPswd {
++(instancetype)lockOnView:(UIView*)view user:(NSString*)user onPasswordSet:(void (^ __nullable)(DBGuestureLock *lock, NSString *password))onPasswordSet onGetCorrectPswd:(void (^ __nullable)(DBGuestureLock *lock, NSString *password))onGetCorrectPswd onGetIncorrectPswd:(void (^ __nullable)(DBGuestureLock *lock, NSString *password))onGetIncorrectPswd {
     CGFloat width = view.frame.size.height > view.frame.size.width ? view.frame.size.width : view.frame.size.height;
     CGFloat height = view.frame.size.height < view.frame.size.width ? view.frame.size.width : view.frame.size.height;
-    CGRect frame = CGRectMake(0, height - width - offset, width, width);
+    CGRect frame = CGRectMake(0, height - width - 60, width, width);
     DBGuestureLock *lock = [[DBGuestureLock alloc] initWithFrame:frame];
     
+    lock.user = user;
     lock.delegate = nil;
     lock.onPasswordSet = onPasswordSet;
     lock.onGetCorrectPswd = onGetCorrectPswd;
@@ -279,11 +275,10 @@
         DBGuestureButton *button = self.selectedButtons[i];
         [password appendFormat:@"%li", (long)button.tag];
     }
-    
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    NSString *correctPswd = [defaults valueForKey:DBGuestureLockPaswd];
+    NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:GUESTURE_LOCK];
+    NSString *correctPswd = [defaults valueForKey:self.user];
     if (correctPswd == nil || [correctPswd length] <= 0) {
-        [defaults setValue: password forKey:DBGuestureLockPaswd];
+        [defaults setValue: password forKey:self.user];
         if (self.delegate) {
             [self.delegate guestureLock:self didSetPassword:password];
         } else {
